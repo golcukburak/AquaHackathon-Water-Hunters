@@ -1,0 +1,44 @@
+#define sensornemTo  A0
+#define sensornemT1  A1
+#define sensornemT2  A2
+#define sensorisinem  3
+#define motor  4
+volatile int flow_frequency;
+unsigned int l_hour; 
+unsigned char flowsensor = 2; 
+unsigned long currentTime;
+unsigned long cloopTime;
+void flow () 
+{
+flow_frequency++;
+}
+int a=1;
+void setup() {
+ pinMode(motor, OUTPUT);
+
+ pinMode(flowsensor, INPUT);
+digitalWrite(flowsensor, HIGH);
+Serial.begin(9600);
+attachInterrupt(0, flow, RISING);
+sei(); 
+currentTime = millis();
+cloopTime = currentTime;
+}
+
+void loop() {
+  if(a<=1){
+    digitalWrite(motor, HIGH);
+    delay(1000);
+    digitalWrite(motor, LOW);
+    a++; 
+  } 
+  currentTime = millis();
+
+if(currentTime >= (cloopTime + 1000))
+{
+cloopTime = currentTime; 
+l_hour = (flow_frequency * 60 / 7.5); 
+flow_frequency = 0; 
+Serial.print(l_hour, DEC);
+Serial.println(" L/hour");
+}}
