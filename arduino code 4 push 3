@@ -1,0 +1,295 @@
+#include <Adafruit_Sensor.h>//include library
+#include <DHT.h>//include library for DHT11
+#include <DHT_U.h>//include library for DHT11
+#define wateringTime 10000 
+#define waitingTime 16000
+#define veryDry 800
+#define Dry 600
+#define normal 400
+#define wet 200
+#define sensorDampTo  A0
+#define sensorDampT1  A1
+#define sensorDampT2  A2
+#define Heat_Damp  3 //DHT11
+#define DHTTYPE DHT11
+#define engine  4
+int Damp; //intecer damp
+int Damp2; //intecer damp 2
+int Damp3; //intecer damp 3
+DHT dht(Heat_Damp, DHTTYPE);
+volatile int flow_frequency; // sensor palsi
+unsigned int l_hour; // litre / saat
+unsigned char flowsensor = 2; // Sensor girişi
+unsigned long currentTime;
+unsigned long cloopTime;
+void flow () // Interrupt
+{
+flow_frequency++;
+}
+void setup() {
+  // sensor giriş ayarları
+ pinMode(flowsensor, INPUT);
+ digitalWrite(flowsensor, HIGH);
+ Serial.begin(9600);
+ // İnterrupt ayarı
+ attachInterrupt(0, flow, RISING);
+ sei(); // interrupts açık
+ currentTime = millis();
+ cloopTime = currentTime;
+ pinMode(engine, OUTPUT); // Setting engine to output
+ pinMode(sensorDampTo, INPUT);//Setting damp sensor to input
+ pinMode(sensorDampT1, INPUT);//Setting damp sensor to input
+ pinMode(sensorDampT2, INPUT);//Setting damp sensor to input
+ dht.begin();
+}
+void loop() {
+  float Humidity = dht.readHumidity();
+  float Temperature = dht.readTemperature();
+    if (isnan(Humidity) || isnan( Temperature)) {
+    Serial.println(F("Failed to read from DHT sensor!"));
+    return;
+  }
+  Serial.print(F("Humidity: "));
+  Serial.print(Humidity);
+  Serial.print(F("%  Temperature: "));
+  Serial.println(Temperature);
+  while(Humidity>60){
+    digitalWrite(engine,LOW);//engine off
+    delay(10000);// wait for 10 second
+    break;
+  }
+    while(Temperature>35){
+      if(Humidity<40){
+        digitalWrite(engine,HIGH);//engine on
+        delay(wateringTime);// wait for 10 second
+        digitalWrite(engine,LOW);//engine off
+        delay(waitingTime);//wait for 16 second
+        break;
+        currentTime = millis();
+        // saniyede geçen pals sayısı sayılıp litre - saat hesabı alınması
+        if(currentTime >= (cloopTime + 1000))
+        {
+        cloopTime = currentTime; // saniyeyi güncelle
+        l_hour = (flow_frequency * 60 / 7.5); // litre hesabı frekans * 60 / 7.5
+        flow_frequency = 0; // sayıcıyı sıfırla
+        Serial.print(l_hour, DEC); // sonucu seri ekranda göster
+        Serial.println(" L/hour");
+       } 
+      }
+      else{
+         Damp2=analogRead(sensorDampT1);//Read the humanity sensor and going to equal to the damp sensor
+          Serial.print("Damp2: ");
+          Serial.println (Damp2);//Writing datas to serial screen 
+           if(Damp2>veryDry){ 
+           digitalWrite(engine,HIGH);//engine on
+           delay(wateringTime+3000);// wait for 13 second
+           digitalWrite(engine,LOW);//engine off
+           delay(waitingTime-10000);// wait for 6 second
+           }
+           else if(Damp2>Dry){
+           digitalWrite(engine,HIGH);//engine on
+           delay(wateringTime);// wait for 10 second
+           digitalWrite(engine,LOW);//engine off
+           delay(waitingTime-6000);// wait for 10 second
+           currentTime = millis();
+           // saniyede geçen pals sayısı sayılıp litre - saat hesabı alınması
+           if(currentTime >= (cloopTime + 1000))
+           {
+           cloopTime = currentTime; // saniyeyi güncelle
+           l_hour = (flow_frequency * 60 / 7.5); // litre hesabı frekans * 60 / 7.5
+           flow_frequency = 0; // sayıcıyı sıfırla
+           Serial.print(l_hour, DEC); // sonucu seri ekranda göster
+           Serial.println(" L/hour");
+           } 
+           }
+           else if(Damp2>normal){
+           digitalWrite(engine,HIGH);//engine on
+           delay(wateringTime-3000);// wait for 7 second
+           digitalWrite(engine,LOW);//engine off
+           delay(waitingTime);// wait for 16 second
+           currentTime = millis();
+           // saniyede geçen pals sayısı sayılıp litre - saat hesabı alınması
+           if(currentTime >= (cloopTime + 1000))
+           {
+           cloopTime = currentTime; // saniyeyi güncelle
+           l_hour = (flow_frequency * 60 / 7.5); // litre hesabı frekans * 60 / 7.5
+           flow_frequency = 0; // sayıcıyı sıfırla
+           Serial.print(l_hour, DEC); // sonucu seri ekranda göster
+           Serial.println(" L/hour");
+           } 
+           }
+           else if(Damp>wet){
+           digitalWrite(engine,HIGH);//engine on
+           delay(wateringTime-4000);// wait for 6 second
+           digitalWrite(engine,LOW);//engine off
+           delay(waitingTime+16000);// wait for 32 second
+               currentTime = millis();
+               // saniyede geçen pals sayısı sayılıp litre - saat hesabı alınması
+              if(currentTime >= (cloopTime + 1000))
+              {
+              cloopTime = currentTime; // saniyeyi güncelle
+              l_hour = (flow_frequency * 60 / 7.5); // litre hesabı frekans * 60 / 7.5
+              flow_frequency = 0; // sayıcıyı sıfırla
+              Serial.print(l_hour, DEC); // sonucu seri ekranda göster
+             Serial.println(" L/hour");
+            } 
+           }
+        break;
+      }
+      
+    }
+    while(Temperature<0){
+      if(Humidity>=45){
+          digitalWrite(engine,LOW);//engine off
+          delay(10000);// wait for 10 second
+          break;
+          currentTime = millis();
+       // saniyede geçen pals sayısı sayılıp litre - saat hesabı alınması
+       if(currentTime >= (cloopTime + 1000))
+       {
+       cloopTime = currentTime; // saniyeyi güncelle
+       l_hour = (flow_frequency * 60 / 7.5); // litre hesabı frekans * 60 / 7.5
+       flow_frequency = 0; // sayıcıyı sıfırla
+       Serial.print(l_hour, DEC); // sonucu seri ekranda göster
+       Serial.println(" L/hour");
+       } 
+          
+      }
+      else{
+         Damp3=analogRead(sensorDampT2);//Read the humanity sensor and going to equal to the damp sensor
+          Serial.print("Damp3: ");
+          Serial.println (Damp3);//Writing datas to serial screen 
+           if(Damp>veryDry){ 
+         digitalWrite(engine,HIGH);//engine on
+         delay(wateringTime+3000);// wait for 13 second
+         digitalWrite(engine,LOW);//engine off
+         delay(waitingTime-10000);// wait for 6 second
+        currentTime = millis();
+        // saniyede geçen pals sayısı sayılıp litre - saat hesabı alınması
+       if(currentTime >= (cloopTime + 1000))
+       {
+       cloopTime = currentTime; // saniyeyi güncelle
+       l_hour = (flow_frequency * 60 / 7.5); // litre hesabı frekans * 60 / 7.5
+       flow_frequency = 0; // sayıcıyı sıfırla
+       Serial.print(l_hour, DEC); // sonucu seri ekranda göster
+       Serial.println(" L/hour");
+       } 
+         }
+           else if(Damp>Dry){
+        digitalWrite(engine,HIGH);//engine on
+        delay(wateringTime);// wait for 10 second
+        digitalWrite(engine,LOW);//engine off
+        delay(waitingTime-6000);// wait for 10 second
+           currentTime = millis();
+        // saniyede geçen pals sayısı sayılıp litre - saat hesabı alınması
+       if(currentTime >= (cloopTime + 1000))
+       {
+       cloopTime = currentTime; // saniyeyi güncelle
+       l_hour = (flow_frequency * 60 / 7.5); // litre hesabı frekans * 60 / 7.5
+       flow_frequency = 0; // sayıcıyı sıfırla
+       Serial.print(l_hour, DEC); // sonucu seri ekranda göster
+       Serial.println(" L/hour");
+       } 
+       }
+        else if(Damp>normal){
+        digitalWrite(engine,HIGH);//engine on
+        delay(wateringTime-3000);// wait for 7 second
+        digitalWrite(engine,LOW);//engine off
+        delay(waitingTime);//wait for 16 second
+           currentTime = millis();
+        // saniyede geçen pals sayısı sayılıp litre - saat hesabı alınması
+       if(currentTime >= (cloopTime + 1000))
+       {
+       cloopTime = currentTime; // saniyeyi güncelle
+       l_hour = (flow_frequency * 60 / 7.5); // litre hesabı frekans * 60 / 7.5
+       flow_frequency = 0; // sayıcıyı sıfırla
+       Serial.print(l_hour, DEC); // sonucu seri ekranda göster
+       Serial.println(" L/hour");
+       } 
+      }
+         else if(Damp>wet){
+        digitalWrite(engine,HIGH);//engine on
+        delay(wateringTime-4000);// wait for 6 second
+        digitalWrite(engine,LOW);//engine off
+        delay(waitingTime+16000);// wait for 32 second
+           currentTime = millis();
+        // saniyede geçen pals sayısı sayılıp litre - saat hesabı alınması
+       if(currentTime >= (cloopTime + 1000))
+       {
+       cloopTime = currentTime; // saniyeyi güncelle
+       l_hour = (flow_frequency * 60 / 7.5); // litre hesabı frekans * 60 / 7.5
+       flow_frequency = 0; // sayıcıyı sıfırla
+       Serial.print(l_hour, DEC); // sonucu seri ekranda göster
+       Serial.println(" L/hour");
+       } 
+       }
+      }
+    }
+  Damp=analogRead(sensorDampTo);//Read the humanity sensor and going to equal to the damp sensor
+  Serial.print("Damp: ");
+  Serial.println (Damp);//Writing datas to serial screen 
+  if(Damp>veryDry){ 
+    digitalWrite(engine,HIGH);//engine on
+    delay(wateringTime+3000);// wait for 13 second
+    digitalWrite(engine,LOW);//engine off
+    delay(waitingTime-10000);// wait for 6 second
+        currentTime = millis();
+        // saniyede geçen pals sayısı sayılıp litre - saat hesabı alınması
+       if(currentTime >= (cloopTime + 1000))
+       {
+       cloopTime = currentTime; // saniyeyi güncelle
+       l_hour = (flow_frequency * 60 / 7.5); // litre hesabı frekans * 60 / 7.5
+       flow_frequency = 0; // sayıcıyı sıfırla
+       Serial.print(l_hour, DEC); // sonucu seri ekranda göster
+       Serial.println(" L/hour");
+       } 
+  }
+  else if(Damp>Dry){
+        digitalWrite(engine,HIGH);//engine on
+        delay(wateringTime);// wait for 10 second
+        digitalWrite(engine,LOW);//engine off
+        delay(waitingTime-6000);// wait for 10 second
+           currentTime = millis();
+        // saniyede geçen pals sayısı sayılıp litre - saat hesabı alınması
+       if(currentTime >= (cloopTime + 1000))
+       {
+       cloopTime = currentTime; // saniyeyi güncelle
+       l_hour = (flow_frequency * 60 / 7.5); // litre hesabı frekans * 60 / 7.5
+       flow_frequency = 0; // sayıcıyı sıfırla
+       Serial.print(l_hour, DEC); // sonucu seri ekranda göster
+       Serial.println(" L/hour");
+       } 
+  }
+    else if(Damp>normal){
+        digitalWrite(engine,HIGH);//engine on
+        delay(wateringTime-3000);// wait for 7 second
+        digitalWrite(engine,LOW);//engine off
+        delay(waitingTime);//wait for 16 second
+           currentTime = millis();
+        // saniyede geçen pals sayısı sayılıp litre - saat hesabı alınması
+       if(currentTime >= (cloopTime + 1000))
+       {
+       cloopTime = currentTime; // saniyeyi güncelle
+       l_hour = (flow_frequency * 60 / 7.5); // litre hesabı frekans * 60 / 7.5
+       flow_frequency = 0; // sayıcıyı sıfırla
+       Serial.print(l_hour, DEC); // sonucu seri ekranda göster
+       Serial.println(" L/hour");
+       } 
+  }
+      else if(Damp>wet){
+        digitalWrite(engine,HIGH);//engine on
+        delay(wateringTime-4000);// wait for 6 second
+        digitalWrite(engine,LOW);//engine off
+        delay(waitingTime+16000);// wait for 32 second
+           currentTime = millis();
+        // saniyede geçen pals sayısı sayılıp litre - saat hesabı alınması
+       if(currentTime >= (cloopTime + 1000))
+       {
+       cloopTime = currentTime; // saniyeyi güncelle
+       l_hour = (flow_frequency * 60 / 7.5); // litre hesabı frekans * 60 / 7.5
+       flow_frequency = 0; // sayıcıyı sıfırla
+       Serial.print(l_hour, DEC); // sonucu seri ekranda göster
+       Serial.println(" L/hour");
+       } 
+  }
+}
