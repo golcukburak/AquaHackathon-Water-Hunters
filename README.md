@@ -1,2 +1,3 @@
-aquahack_Water Hunters 
-OSTİM TEKNİK ÜNİVERSİTESİ
+# AqualHACK_WATER HUNTERS
+- OSTİM TEKNİK ÜNİVERSİTESİ
++
